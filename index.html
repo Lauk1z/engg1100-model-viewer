@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="ENGG1100 防洪建筑概念模型浏览器预览">
-  <title>ENGG1100 防洪建筑 · 3D 模型</title>
+  <meta name="description" content="Interactive browser preview of the ENGG1100 flood-resistant housing concept model">
+  <title>ENGG1100 Flood-resistant Housing · 3D Model</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer@4.3.1/dist/model-viewer.min.js"></script>
   <style>
     :root {
@@ -56,6 +56,31 @@
 
     h1 { margin: 0; font-size: clamp(18px, 2vw, 26px); letter-spacing: -.02em; }
     .subtitle { margin-top: 5px; color: var(--muted); font-size: 13px; }
+
+    .language-switch {
+      display: inline-flex;
+      gap: 4px;
+      margin-top: 12px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .language-switch button {
+      min-height: 30px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 12px;
+    }
+
+    .language-switch button[aria-pressed="true"] {
+      color: #061019;
+      background: var(--accent);
+    }
 
     .details {
       top: 22px;
@@ -141,7 +166,7 @@
       id="viewer"
       src="./assets/engg1100-flood-resistant-housing.glb"
       poster="./assets/poster.png"
-      alt="ENGG1100 防洪建筑、水池、风场及弹簧系泊系统三维模型"
+      alt="3D model of the ENGG1100 flood-resistant housing, pool, wind field and spring mooring system"
       camera-controls
       auto-rotate
       rotation-per-second="7deg"
@@ -157,34 +182,38 @@
     </model-viewer>
 
     <header class="topbar">
-      <h1>ENGG1100 防洪建筑</h1>
-      <div class="subtitle">Flood-resistant housing · interactive concept model</div>
+      <h1 data-i18n="heading">ENGG1100 Flood-resistant Housing</h1>
+      <div class="subtitle" data-i18n="subtitle">Interactive concept model</div>
+      <div class="language-switch" role="group" aria-label="Language / 语言">
+        <button type="button" data-language="en" aria-pressed="true">English</button>
+        <button type="button" data-language="zh" aria-pressed="false">中文</button>
+      </div>
     </header>
 
-    <aside class="details" aria-label="模型参数">
-      <strong>模型参数</strong>
+    <aside class="details" aria-label="Model specifications">
+      <strong data-i18n="specifications">Model specifications</strong>
       <dl>
-        <dt>试验空间</dt><dd>826 × 583 mm</dd>
-        <dt>接触板</dt><dd>380 × 380 mm</dd>
-        <dt>展示水深</dt><dd>180 mm</dd>
-        <dt>风速参考</dt><dd>约 2.0 m/s</dd>
-        <dt>推进器</dt><dd>风场对侧双马达</dd>
-        <dt>系泊路径</dt><dd>2 条</dd>
+        <dt data-i18n="testArea">Test area</dt><dd>826 × 583 mm</dd>
+        <dt data-i18n="contactPlate">Contact plate</dt><dd>380 × 380 mm</dd>
+        <dt data-i18n="waterDepth">Displayed water depth</dt><dd>180 mm</dd>
+        <dt data-i18n="windSpeed">Wind speed reference</dt><dd data-i18n="windSpeedValue">Approx. 2.0 m/s</dd>
+        <dt data-i18n="propulsion">Propulsion</dt><dd data-i18n="propulsionValue">Dual motors opposite wind field</dd>
+        <dt data-i18n="mooringPaths">Mooring paths</dt><dd data-i18n="mooringPathsValue">2 paths</dd>
       </dl>
     </aside>
 
-    <div class="hint">拖动旋转 · 滚轮或双指缩放</div>
+    <div class="hint" data-i18n="hint">Drag to rotate · Scroll or pinch to zoom</div>
 
-    <nav class="controls" aria-label="模型控制">
-      <button id="reset" type="button">复位视角</button>
-      <button id="rotate" type="button" aria-pressed="true">暂停旋转</button>
-      <button id="fullscreen" type="button">全屏</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb" download>下载 GLB</a>
+    <nav class="controls" aria-label="Model controls">
+      <button id="reset" type="button" data-i18n="reset">Reset view</button>
+      <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
+      <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
       <div class="loading-card">
-        <div id="loadingText">正在加载 3D 模型…</div>
+        <div id="loadingText">Loading 3D model…</div>
         <div class="track"><div id="fill" class="fill"></div></div>
       </div>
     </div>
@@ -197,11 +226,99 @@
     const loadingText = document.querySelector('#loadingText');
     const fill = document.querySelector('#fill');
     const rotateButton = document.querySelector('#rotate');
+    const fullscreenButton = document.querySelector('#fullscreen');
+
+    const translations = {
+      en: {
+        pageTitle: 'ENGG1100 Flood-resistant Housing · 3D Model',
+        description: 'Interactive browser preview of the ENGG1100 flood-resistant housing concept model',
+        modelAlt: '3D model of the ENGG1100 flood-resistant housing, pool, wind field and spring mooring system',
+        specificationsAria: 'Model specifications',
+        controlsAria: 'Model controls',
+        heading: 'ENGG1100 Flood-resistant Housing',
+        subtitle: 'Interactive concept model',
+        specifications: 'Model specifications',
+        testArea: 'Test area',
+        contactPlate: 'Contact plate',
+        waterDepth: 'Displayed water depth',
+        windSpeed: 'Wind speed reference',
+        windSpeedValue: 'Approx. 2.0 m/s',
+        propulsion: 'Propulsion',
+        propulsionValue: 'Dual motors opposite wind field',
+        mooringPaths: 'Mooring paths',
+        mooringPathsValue: '2 paths',
+        hint: 'Drag to rotate · Scroll or pinch to zoom',
+        reset: 'Reset view',
+        pause: 'Pause rotation',
+        resume: 'Auto-rotate',
+        fullscreen: 'Fullscreen',
+        download: 'Download GLB',
+        loading: 'Loading 3D model…',
+        loadingProgress: percent => `Loading 3D model… ${percent}%`,
+        error: 'The model could not be loaded. Please refresh the page.'
+      },
+      zh: {
+        pageTitle: 'ENGG1100 防洪建筑 · 3D 模型',
+        description: 'ENGG1100 防洪建筑概念模型浏览器预览',
+        modelAlt: 'ENGG1100 防洪建筑、水池、风场及弹簧系泊系统三维模型',
+        specificationsAria: '模型参数',
+        controlsAria: '模型控制',
+        heading: 'ENGG1100 防洪建筑',
+        subtitle: '交互式概念模型',
+        specifications: '模型参数',
+        testArea: '试验空间',
+        contactPlate: '接触板',
+        waterDepth: '展示水深',
+        windSpeed: '风速参考',
+        windSpeedValue: '约 2.0 m/s',
+        propulsion: '推进器',
+        propulsionValue: '风场对侧双马达',
+        mooringPaths: '系泊路径',
+        mooringPathsValue: '2 条',
+        hint: '拖动旋转 · 滚轮或双指缩放',
+        reset: '复位视角',
+        pause: '暂停旋转',
+        resume: '自动旋转',
+        fullscreen: '全屏',
+        download: '下载 GLB',
+        loading: '正在加载 3D 模型…',
+        loadingProgress: percent => `正在加载 3D 模型… ${percent}%`,
+        error: '模型加载失败，请刷新页面重试。'
+      }
+    };
+
+    let currentLanguage = localStorage.getItem('engg1100-language') === 'zh' ? 'zh' : 'en';
+    let loadProgress = 0;
+
+    function setLanguage(language) {
+      currentLanguage = language;
+      const copy = translations[language];
+      document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+      document.title = copy.pageTitle;
+      document.querySelector('meta[name="description"]').content = copy.description;
+      viewer.alt = copy.modelAlt;
+      document.querySelector('.details').setAttribute('aria-label', copy.specificationsAria);
+      document.querySelector('.controls').setAttribute('aria-label', copy.controlsAria);
+      document.querySelectorAll('[data-i18n]').forEach(element => {
+        element.textContent = copy[element.dataset.i18n];
+      });
+      document.querySelectorAll('[data-language]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.language === language));
+      });
+      rotateButton.textContent = viewer.hasAttribute('auto-rotate') ? copy.pause : copy.resume;
+      loadingText.textContent = loadProgress > 0 ? copy.loadingProgress(loadProgress) : copy.loading;
+      localStorage.setItem('engg1100-language', language);
+    }
+
+    document.querySelectorAll('[data-language]').forEach(button => {
+      button.addEventListener('click', () => setLanguage(button.dataset.language));
+    });
 
     viewer.addEventListener('progress', event => {
       const percent = Math.round(event.detail.totalProgress * 100);
+      loadProgress = percent;
       fill.style.width = `${percent}%`;
-      loadingText.textContent = `正在加载 3D 模型… ${percent}%`;
+      loadingText.textContent = translations[currentLanguage].loadingProgress(percent);
     });
 
     viewer.addEventListener('load', () => {
@@ -209,7 +326,7 @@
     });
 
     viewer.addEventListener('error', () => {
-      loadingText.textContent = '模型加载失败，请刷新页面重试。';
+      loadingText.textContent = translations[currentLanguage].error;
     });
 
     document.querySelector('#reset').addEventListener('click', () => {
@@ -221,17 +338,19 @@
     rotateButton.addEventListener('click', () => {
       const rotating = viewer.hasAttribute('auto-rotate');
       viewer.toggleAttribute('auto-rotate', !rotating);
-      rotateButton.textContent = rotating ? '自动旋转' : '暂停旋转';
+      rotateButton.textContent = rotating ? translations[currentLanguage].resume : translations[currentLanguage].pause;
       rotateButton.setAttribute('aria-pressed', String(!rotating));
     });
 
-    document.querySelector('#fullscreen').addEventListener('click', async () => {
+    fullscreenButton.addEventListener('click', async () => {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
       } else {
         await stage.requestFullscreen();
       }
     });
+
+    setLanguage(currentLanguage);
   </script>
 </body>
 </html>
