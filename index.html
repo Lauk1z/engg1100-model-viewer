@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="ENGG1100 防洪建筑概念模型浏览器预览">
+  <title>ENGG1100 防洪建筑 · 3D 模型</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer@4.3.1/dist/model-viewer.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+      --ink: #f5fbff;
+      --muted: #9fb1bd;
+      --panel: rgba(7, 18, 26, .82);
+      --line: rgba(174, 224, 244, .18);
+      --accent: #66dcff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+    body {
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 50% 18%, rgba(40, 106, 130, .34), transparent 42%),
+        linear-gradient(145deg, #061019, #101b24 58%, #07131a);
+    }
+
+    main { position: relative; width: 100%; height: 100%; min-height: 460px; }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      --poster-color: transparent;
+      --progress-bar-color: var(--accent);
+    }
+
+    .topbar, .details, .controls, .hint {
+      position: absolute;
+      z-index: 2;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar {
+      top: max(18px, env(safe-area-inset-top));
+      left: 22px;
+      padding: 14px 18px;
+      border-radius: 16px;
+    }
+
+    h1 { margin: 0; font-size: clamp(18px, 2vw, 26px); letter-spacing: -.02em; }
+    .subtitle { margin-top: 5px; color: var(--muted); font-size: 13px; }
+
+    .details {
+      top: 22px;
+      right: 22px;
+      width: min(300px, calc(100vw - 44px));
+      padding: 16px 18px;
+      border-radius: 16px;
+    }
+
+    .details strong { display: block; margin-bottom: 9px; font-size: 14px; }
+    .details dl { display: grid; grid-template-columns: 1fr auto; gap: 7px 14px; margin: 0; font-size: 12px; }
+    .details dt { color: var(--muted); }
+    .details dd { margin: 0; text-align: right; }
+
+    .controls {
+      left: 50%;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 14px;
+      transform: translateX(-50%);
+    }
+
+    button, .download {
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, .06);
+      font: inherit;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease;
+    }
+
+    button:hover, .download:hover { background: rgba(102, 220, 255, .14); border-color: rgba(102, 220, 255, .55); }
+    button:active, .download:active { transform: translateY(1px); }
+    button:focus-visible, .download:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .download { display: inline-flex; align-items: center; }
+
+    .hint {
+      left: 22px;
+      bottom: 22px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+    .loading {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      background: #09141c;
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+
+    .loading[hidden] { opacity: 0; visibility: hidden; }
+    .loading-card { width: min(320px, 80vw); text-align: center; }
+    .track { height: 3px; margin-top: 14px; overflow: hidden; border-radius: 99px; background: rgba(255, 255, 255, .1); }
+    .fill { width: 0; height: 100%; background: var(--accent); transition: width .15s linear; }
+
+    @media (max-width: 760px) {
+      .topbar { left: 14px; right: 14px; top: 14px; }
+      .details { display: none; }
+      .hint { left: 50%; bottom: 80px; transform: translateX(-50%); white-space: nowrap; }
+      .controls { width: calc(100% - 20px); justify-content: center; bottom: 10px; }
+      button, .download { flex: 1; padding: 0 8px; text-align: center; justify-content: center; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="stage">
+    <model-viewer
+      id="viewer"
+      src="./assets/engg1100-flood-resistant-housing.glb"
+      poster="./assets/poster.png"
+      alt="ENGG1100 防洪建筑、水池、风场及弹簧系泊系统三维模型"
+      camera-controls
+      auto-rotate
+      rotation-per-second="7deg"
+      shadow-intensity="1"
+      shadow-softness=".8"
+      exposure=".82"
+      environment-image="neutral"
+      camera-orbit="35deg 64deg 1.45m"
+      min-camera-orbit="auto auto .55m"
+      max-camera-orbit="auto auto 4m"
+      interaction-prompt="auto"
+      touch-action="pan-y">
+    </model-viewer>
+
+    <header class="topbar">
+      <h1>ENGG1100 防洪建筑</h1>
+      <div class="subtitle">Flood-resistant housing · interactive concept model</div>
+    </header>
+
+    <aside class="details" aria-label="模型参数">
+      <strong>模型参数</strong>
+      <dl>
+        <dt>试验空间</dt><dd>826 × 583 mm</dd>
+        <dt>接触板</dt><dd>380 × 380 mm</dd>
+        <dt>展示水深</dt><dd>180 mm</dd>
+        <dt>风速参考</dt><dd>约 2.0 m/s</dd>
+        <dt>推进器</dt><dd>风场对侧双马达</dd>
+        <dt>系泊路径</dt><dd>2 条</dd>
+      </dl>
+    </aside>
+
+    <div class="hint">拖动旋转 · 滚轮或双指缩放</div>
+
+    <nav class="controls" aria-label="模型控制">
+      <button id="reset" type="button">复位视角</button>
+      <button id="rotate" type="button" aria-pressed="true">暂停旋转</button>
+      <button id="fullscreen" type="button">全屏</button>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb" download>下载 GLB</a>
+    </nav>
+
+    <div id="loading" class="loading" role="status" aria-live="polite">
+      <div class="loading-card">
+        <div id="loadingText">正在加载 3D 模型…</div>
+        <div class="track"><div id="fill" class="fill"></div></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const viewer = document.querySelector('#viewer');
+    const stage = document.querySelector('#stage');
+    const loading = document.querySelector('#loading');
+    const loadingText = document.querySelector('#loadingText');
+    const fill = document.querySelector('#fill');
+    const rotateButton = document.querySelector('#rotate');
+
+    viewer.addEventListener('progress', event => {
+      const percent = Math.round(event.detail.totalProgress * 100);
+      fill.style.width = `${percent}%`;
+      loadingText.textContent = `正在加载 3D 模型… ${percent}%`;
+    });
+
+    viewer.addEventListener('load', () => {
+      loading.hidden = true;
+    });
+
+    viewer.addEventListener('error', () => {
+      loadingText.textContent = '模型加载失败，请刷新页面重试。';
+    });
+
+    document.querySelector('#reset').addEventListener('click', () => {
+      viewer.cameraOrbit = '35deg 64deg 1.45m';
+      viewer.cameraTarget = 'auto auto auto';
+      viewer.jumpCameraToGoal();
+    });
+
+    rotateButton.addEventListener('click', () => {
+      const rotating = viewer.hasAttribute('auto-rotate');
+      viewer.toggleAttribute('auto-rotate', !rotating);
+      rotateButton.textContent = rotating ? '自动旋转' : '暂停旋转';
+      rotateButton.setAttribute('aria-pressed', String(!rotating));
+    });
+
+    document.querySelector('#fullscreen').addEventListener('click', async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await stage.requestFullscreen();
+      }
+    });
+  </script>
+</body>
+</html>
