@@ -122,6 +122,7 @@
     button:hover, .download:hover { background: rgba(102, 220, 255, .14); border-color: rgba(102, 220, 255, .55); }
     button:active, .download:active { transform: translateY(1px); }
     button:focus-visible, .download:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    button:disabled { cursor: wait; opacity: .58; }
 
     .download { display: inline-flex; align-items: center; }
 
@@ -164,8 +165,8 @@
   <main id="stage">
     <model-viewer
       id="viewer"
-      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-motor-40mm"
-      poster="./assets/poster.png?v=20260825-motor-40mm"
+      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-big-bang"
+      poster="./assets/poster.png?v=20260825-big-bang"
       alt="3D model of the ENGG1100 open-top housing embedded 40 mm into its base with 110 mm exposed"
       camera-controls
       auto-rotate
@@ -178,6 +179,7 @@
       min-camera-orbit="auto auto .55m"
       max-camera-orbit="auto auto 4m"
       interaction-prompt="auto"
+      animation-crossfade-duration="0"
       touch-action="pan-y">
     </model-viewer>
 
@@ -212,9 +214,10 @@
 
     <nav class="controls" aria-label="Model controls">
       <button id="reset" type="button" data-i18n="reset">Reset view</button>
+      <button id="explode" type="button" aria-pressed="false" disabled>Explode view</button>
       <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
       <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-motor-40mm" download data-i18n="download">Download GLB</a>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-big-bang" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
@@ -231,8 +234,12 @@
     const loading = document.querySelector('#loading');
     const loadingText = document.querySelector('#loadingText');
     const fill = document.querySelector('#fill');
+    const explodeButton = document.querySelector('#explode');
     const rotateButton = document.querySelector('#rotate');
     const fullscreenButton = document.querySelector('#fullscreen');
+    const explodeAnimation = 'Explode_View';
+    const explodeTrackDuration = 53 / 30;
+    const explodeTransitionDuration = 1800;
 
     const translations = {
       en: {
@@ -264,6 +271,10 @@
         ropeRouteValue: 'Motor → base pulley → floor spring',
         hint: 'Drag to rotate · Scroll or pinch to zoom',
         reset: 'Reset view',
+        explode: 'Explode view',
+        reassemble: 'Reassemble',
+        exploding: 'Exploding…',
+        reassembling: 'Reassembling…',
         pause: 'Pause rotation',
         resume: 'Auto-rotate',
         fullscreen: 'Fullscreen',
@@ -301,6 +312,10 @@
         ropeRouteValue: '马达 → 底板滑轮 → 地板弹簧',
         hint: '拖动旋转 · 滚轮或双指缩放',
         reset: '复位视角',
+        explode: '大爆炸',
+        reassemble: '收回模型',
+        exploding: '爆炸展开中…',
+        reassembling: '正在收回…',
         pause: '暂停旋转',
         resume: '自动旋转',
         fullscreen: '全屏',
@@ -313,6 +328,37 @@
 
     let currentLanguage = localStorage.getItem('engg1100-language') === 'zh' ? 'zh' : 'en';
     let loadProgress = 0;
+    let exploded = false;
+    let explodeTransition = false;
+    let explodeTarget = false;
+    let assembledCameraRadius = 1.45;
+    let explodeAnimationFrame = 0;
+
+    function updateExplodeButton() {
+      const copy = translations[currentLanguage];
+      if (explodeTransition) {
+        explodeButton.textContent = explodeTarget ? copy.exploding : copy.reassembling;
+      } else {
+        explodeButton.textContent = exploded ? copy.reassemble : copy.explode;
+      }
+      explodeButton.setAttribute('aria-pressed', String(exploded));
+    }
+
+    function setCameraRadius(radius) {
+      const orbit = viewer.getCameraOrbit();
+      viewer.cameraOrbit = `${orbit.theta}rad ${orbit.phi}rad ${radius}m`;
+    }
+
+    function finishExplodeTransition() {
+      if (!explodeTransition) return;
+      window.cancelAnimationFrame(explodeAnimationFrame);
+      const trackEnd = Math.max(0, (viewer.duration || explodeTrackDuration) - 0.001);
+      viewer.currentTime = explodeTarget ? trackEnd : 0;
+      exploded = explodeTarget;
+      explodeTransition = false;
+      explodeButton.disabled = false;
+      updateExplodeButton();
+    }
 
     function setLanguage(language) {
       currentLanguage = language;
@@ -330,6 +376,7 @@
         button.setAttribute('aria-pressed', String(button.dataset.language === language));
       });
       rotateButton.textContent = viewer.hasAttribute('auto-rotate') ? copy.pause : copy.resume;
+      updateExplodeButton();
       loadingText.textContent = loadProgress > 0 ? copy.loadingProgress(loadProgress) : copy.loading;
       localStorage.setItem('engg1100-language', language);
     }
@@ -346,6 +393,13 @@
     });
 
     viewer.addEventListener('load', () => {
+      if (viewer.availableAnimations.includes(explodeAnimation)) {
+        viewer.animationName = explodeAnimation;
+        viewer.currentTime = 0;
+        viewer.timeScale = 1;
+        viewer.pause();
+        explodeButton.disabled = false;
+      }
       loading.hidden = true;
     });
 
@@ -354,9 +408,42 @@
     });
 
     document.querySelector('#reset').addEventListener('click', () => {
-      viewer.cameraOrbit = '35deg 64deg 1.45m';
+      const radius = exploded || (explodeTransition && explodeTarget) ? 2.15 : 1.45;
+      viewer.cameraOrbit = `35deg 64deg ${radius}m`;
       viewer.cameraTarget = 'auto auto auto';
       viewer.jumpCameraToGoal();
+    });
+
+    explodeButton.addEventListener('click', () => {
+      if (explodeTransition || !viewer.availableAnimations.includes(explodeAnimation)) return;
+      explodeTarget = !exploded;
+      explodeTransition = true;
+      explodeButton.disabled = true;
+
+      if (explodeTarget) {
+        assembledCameraRadius = viewer.getCameraOrbit().radius;
+        setCameraRadius(Math.max(2.15, assembledCameraRadius * 1.45));
+      } else {
+        setCameraRadius(assembledCameraRadius);
+      }
+
+      updateExplodeButton();
+      viewer.pause();
+      const trackEnd = Math.max(0, (viewer.duration || explodeTrackDuration) - 0.001);
+      const startTime = explodeTarget ? 0 : trackEnd;
+      const endTime = explodeTarget ? trackEnd : 0;
+      const startedAt = performance.now();
+      const animateExplosion = now => {
+        const progress = Math.min(1, (now - startedAt) / explodeTransitionDuration);
+        const eased = progress * progress * (3 - 2 * progress);
+        viewer.currentTime = startTime + (endTime - startTime) * eased;
+        if (progress < 1) {
+          explodeAnimationFrame = window.requestAnimationFrame(animateExplosion);
+        } else {
+          finishExplodeTransition();
+        }
+      };
+      explodeAnimationFrame = window.requestAnimationFrame(animateExplosion);
     });
 
     rotateButton.addEventListener('click', () => {
