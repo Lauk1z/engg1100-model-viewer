@@ -309,6 +309,7 @@
     const explodeTrackDuration = 53 / 30;
     const explodeTransitionDuration = 1800;
     const defaultCameraRadius = 1.45;
+    const blankResetCameraRadius = 2.6;
 
     const translations = {
       en: {
@@ -558,10 +559,10 @@
       updatePartAppearance();
     }
 
-    function resetDefaultView() {
+    function resetDefaultView(radius = defaultCameraRadius) {
       clearPartFocus(false);
       viewer.cameraTarget = 'auto auto auto';
-      viewer.cameraOrbit = `35deg 64deg ${defaultCameraRadius}m`;
+      viewer.cameraOrbit = `35deg 64deg ${radius}m`;
     }
 
     function updateExplodeButton() {
@@ -724,7 +725,7 @@
       if (moved > 6) return;
       const part = partFromPoint(event.clientX, event.clientY);
       if (selectedPartId !== null) {
-        if (!part) resetDefaultView();
+        if (!part) resetDefaultView(blankResetCameraRadius);
         return;
       }
       if (part) selectPart(part);
