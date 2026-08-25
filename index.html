@@ -126,6 +126,25 @@
 
     .download { display: inline-flex; align-items: center; }
 
+    .dimension-hotspot {
+      display: grid;
+      min-width: max-content;
+      gap: 2px;
+      padding: 7px 10px;
+      border: 1px solid rgba(102, 220, 255, .8);
+      border-radius: 9px;
+      color: var(--ink);
+      background: rgba(5, 20, 30, .9);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, .38);
+      font-size: 11px;
+      line-height: 1.25;
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+    }
+
+    .dimension-hotspot strong { color: var(--accent); font-size: 12px; }
+    .dimension-hotspot[hidden] { display: none; }
+
     .zoom-control {
       right: 22px;
       bottom: 22px;
@@ -194,8 +213,8 @@
   <main id="stage">
     <model-viewer
       id="viewer"
-      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-inspector"
-      poster="./assets/poster.png?v=20260825-part-inspector"
+      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-dimensions"
+      poster="./assets/poster.png?v=20260825-part-dimensions"
       alt="3D model of the ENGG1100 open-top housing embedded 40 mm into its base with 110 mm exposed"
       camera-controls
       auto-rotate
@@ -211,6 +230,10 @@
       animation-crossfade-duration="0"
       disable-tap
       touch-action="pan-y">
+      <div id="dimensionHotspot" class="dimension-hotspot" slot="hotspot-part-dimensions" data-position="0 0 0" data-normal="0 1 0" hidden>
+        <strong id="dimensionPart"></strong>
+        <span id="dimensionValue"></span>
+      </div>
     </model-viewer>
 
     <header class="topbar">
@@ -254,7 +277,7 @@
       <button id="explode" type="button" aria-pressed="false" disabled>Explode view</button>
       <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
       <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-inspector" download data-i18n="download">Download GLB</a>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-dimensions" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
@@ -273,6 +296,9 @@
     const fill = document.querySelector('#fill');
     const explodeButton = document.querySelector('#explode');
     const zoomSlider = document.querySelector('#zoom');
+    const dimensionHotspot = document.querySelector('#dimensionHotspot');
+    const dimensionPart = document.querySelector('#dimensionPart');
+    const dimensionValue = document.querySelector('#dimensionValue');
     const rotateButton = document.querySelector('#rotate');
     const fullscreenButton = document.querySelector('#fullscreen');
     const explodeAnimation = 'Explode_View';
@@ -310,6 +336,7 @@
         hint: 'Explode, then hover or click parts · Drag to rotate',
         zoom: 'Zoom',
         zoomAria: 'Camera zoom',
+        dimensions: 'Dimensions (L × W × H)',
         reset: 'Reset view',
         explode: 'Explode view',
         reassemble: 'Reassemble',
@@ -353,6 +380,7 @@
         hint: '大爆炸后悬停或点击零件 · 拖动旋转',
         zoom: '变焦',
         zoomAria: '相机变焦',
+        dimensions: '尺寸（长 × 宽 × 高）',
         reset: '复位视角',
         explode: '大爆炸',
         reassemble: '收回模型',
@@ -384,11 +412,13 @@
     function parsePartMaterial(material) {
       if (!material?.name?.startsWith('PART|')) return null;
       const fields = material.name.split('|');
-      if (fields.length < 7) return null;
+      if (fields.length < 11) return null;
       return {
         id: fields[1],
         name: fields[2],
-        center: fields.slice(3, 6).map(Number)
+        center: fields.slice(3, 6).map(Number),
+        size: fields.slice(6, 9).map(Number),
+        hideDuringExplosion: fields[9] === 'H'
       };
     }
 
@@ -410,6 +440,10 @@
         parts.get(metadata.id).materials.push(material);
       });
       stage.dataset.pickableParts = String(parts.size);
+      stage.dataset.explodedVisibleParts = String(
+        Array.from(parts.values()).filter(part => !part.hideDuringExplosion).length
+      );
+      updatePartAppearance();
     }
 
     function restoreMaterial(material) {
@@ -429,17 +463,51 @@
       material.setAlphaMode('BLEND');
     }
 
+    function hideMaterial(material) {
+      const state = materialStates.get(material);
+      if (!state) return;
+      material.pbrMetallicRoughness.setBaseColorFactor([...state.baseColor.slice(0, 3), 0]);
+      material.setEmissiveFactor([0, 0, 0]);
+      material.setAlphaMode('BLEND');
+    }
+
     function highlightMaterial(material) {
       material.pbrMetallicRoughness.setBaseColorFactor([.02, .76, 1, 1]);
       material.setEmissiveFactor([0, .28, .42]);
       material.setAlphaMode('OPAQUE');
     }
 
+    function formatMillimeters(value) {
+      const millimeters = value * 1000;
+      return millimeters.toFixed(millimeters < 10 ? 1 : 0).replace(/\.0$/, '');
+    }
+
+    function updateDimensionHotspot() {
+      const part = parts.get(hoveredPartId || selectedPartId);
+      if (!part || part.hideDuringExplosion) {
+        dimensionHotspot.hidden = true;
+        stage.dataset.dimensionPart = '';
+        return;
+      }
+      const labelPosition = [part.center[0], part.center[1] + part.size[2] / 2 + .012, part.center[2]];
+      viewer.updateHotspot({
+        name: 'hotspot-part-dimensions',
+        position: labelPosition.map(value => `${value}m`).join(' ')
+      });
+      dimensionPart.textContent = part.name.replaceAll('_', ' ');
+      dimensionValue.textContent = `${translations[currentLanguage].dimensions}: ${part.size.map(formatMillimeters).join(' × ')} mm`;
+      dimensionHotspot.hidden = false;
+      stage.dataset.dimensionPart = part.name;
+    }
+
     function updatePartAppearance() {
+      const hideEnvironment = exploded || explodeTransition;
       const focusActive = hoveredPartId !== null || selectedPartId !== null;
       parts.forEach(part => {
         part.materials.forEach(material => {
-          if (part.id === hoveredPartId) {
+          if (hideEnvironment && part.hideDuringExplosion) {
+            hideMaterial(material);
+          } else if (part.id === hoveredPartId) {
             highlightMaterial(material);
           } else if (part.id === selectedPartId || !focusActive) {
             restoreMaterial(material);
@@ -450,12 +518,17 @@
       });
       stage.dataset.hoveredPart = hoveredPartId ? parts.get(hoveredPartId)?.name || '' : '';
       stage.dataset.selectedPart = selectedPartId ? parts.get(selectedPartId)?.name || '' : '';
+      stage.dataset.hiddenEnvironmentParts = hideEnvironment
+        ? String(Array.from(parts.values()).filter(part => part.hideDuringExplosion).length)
+        : '0';
+      updateDimensionHotspot();
     }
 
     function partFromPoint(clientX, clientY) {
       if (!exploded || explodeTransition || !viewer.modelIsVisible) return null;
       const metadata = parsePartMaterial(viewer.materialFromPoint(clientX, clientY));
-      return metadata ? parts.get(metadata.id) || null : null;
+      const part = metadata ? parts.get(metadata.id) || null : null;
+      return part?.hideDuringExplosion ? null : part;
     }
 
     function clearPartFocus(resetTarget = true) {
@@ -506,7 +579,11 @@
       viewer.currentTime = explodeTarget ? trackEnd : 0;
       exploded = explodeTarget;
       explodeTransition = false;
-      if (!exploded) clearPartFocus();
+      if (!exploded) {
+        clearPartFocus();
+      } else {
+        updatePartAppearance();
+      }
       explodeButton.disabled = false;
       updateExplodeButton();
     }
@@ -530,6 +607,7 @@
       document.querySelector('.zoom-control').setAttribute('aria-label', copy.zoomAria);
       zoomSlider.setAttribute('aria-label', copy.zoomAria);
       updateExplodeButton();
+      updateDimensionHotspot();
       loadingText.textContent = loadProgress > 0 ? copy.loadingProgress(loadProgress) : copy.loading;
       localStorage.setItem('engg1100-language', language);
     }
@@ -575,7 +653,11 @@
       explodeTarget = !exploded;
       explodeTransition = true;
       explodeButton.disabled = true;
-      if (!explodeTarget) clearPartFocus();
+      if (!explodeTarget) {
+        clearPartFocus();
+      } else {
+        updatePartAppearance();
+      }
 
       if (explodeTarget) {
         assembledCameraRadius = viewer.getCameraOrbit().radius;
