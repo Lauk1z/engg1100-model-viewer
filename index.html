@@ -216,8 +216,8 @@
   <main id="stage">
     <model-viewer
       id="viewer"
-      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-selection-lock"
-      poster="./assets/poster.png?v=20260825-selection-lock"
+      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-smooth-camera"
+      poster="./assets/poster.png?v=20260825-smooth-camera"
       alt="3D model of the ENGG1100 open-top housing embedded 40 mm into its base with 110 mm exposed"
       camera-controls
       auto-rotate
@@ -227,6 +227,7 @@
       exposure=".82"
       environment-image="neutral"
       camera-orbit="35deg 64deg 1.45m"
+      interpolation-decay="200"
       min-camera-orbit="auto auto .55m"
       max-camera-orbit="auto auto 4m"
       interaction-prompt="auto"
@@ -280,7 +281,7 @@
       <button id="explode" type="button" aria-pressed="false" disabled>Explode view</button>
       <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
       <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-selection-lock" download data-i18n="download">Download GLB</a>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-smooth-camera" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
@@ -307,6 +308,7 @@
     const explodeAnimation = 'Explode_View';
     const explodeTrackDuration = 53 / 30;
     const explodeTransitionDuration = 1800;
+    const defaultCameraRadius = 1.45;
 
     const translations = {
       en: {
@@ -404,7 +406,6 @@
     let exploded = false;
     let explodeTransition = false;
     let explodeTarget = false;
-    let assembledCameraRadius = 1.45;
     let explodeAnimationFrame = 0;
     let hoveredPartId = null;
     let selectedPartId = null;
@@ -558,11 +559,9 @@
     }
 
     function resetDefaultView() {
-      clearPartFocus();
-      const radius = exploded || (explodeTransition && explodeTarget) ? 2.15 : 1.45;
-      viewer.cameraOrbit = `35deg 64deg ${radius}m`;
+      clearPartFocus(false);
       viewer.cameraTarget = 'auto auto auto';
-      viewer.jumpCameraToGoal();
+      viewer.cameraOrbit = `35deg 64deg ${defaultCameraRadius}m`;
     }
 
     function updateExplodeButton() {
@@ -665,13 +664,6 @@
         clearPartFocus();
       } else {
         updatePartAppearance();
-      }
-
-      if (explodeTarget) {
-        assembledCameraRadius = viewer.getCameraOrbit().radius;
-        setCameraRadius(Math.max(2.15, assembledCameraRadius * 1.45));
-      } else {
-        setCameraRadius(assembledCameraRadius);
       }
 
       updateExplodeButton();
