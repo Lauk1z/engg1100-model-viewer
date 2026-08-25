@@ -153,7 +153,7 @@
       bottom: 22px;
       display: flex;
       width: 54px;
-      height: 218px;
+      height: 240px;
       align-items: center;
       flex-direction: column;
       gap: 7px;
@@ -165,6 +165,7 @@
 
     .zoom-control label { color: var(--ink); font-size: 11px; }
     .zoom-control span { line-height: 1; user-select: none; }
+    .zoom-percent { color: var(--accent); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
     .zoom-slider {
       flex: 0 0 auto;
       width: 140px;
@@ -206,7 +207,7 @@
       .details { display: none; }
       .hint { left: 50%; bottom: 80px; transform: translateX(-50%); white-space: nowrap; }
       .controls { width: calc(100% - 20px); justify-content: center; bottom: 10px; }
-      .zoom-control { right: 10px; bottom: 78px; height: 168px; }
+      .zoom-control { right: 10px; bottom: 78px; height: 190px; }
       .zoom-slider { width: 90px; margin: 33px 0; }
       button, .download { flex: 1; padding: 0 8px; text-align: center; justify-content: center; font-size: 12px; }
     }
@@ -269,6 +270,7 @@
 
     <aside class="zoom-control" aria-label="Zoom control">
       <label for="zoom" data-i18n="zoom">Zoom</label>
+      <output id="zoomPercent" class="zoom-percent" for="zoom" aria-live="polite">26%</output>
       <span aria-hidden="true">＋</span>
       <input id="zoom" class="zoom-slider" type="range" min="55" max="400" step="5" value="145" aria-label="Zoom">
       <span aria-hidden="true">−</span>
@@ -303,13 +305,14 @@
     const dimensionHotspot = document.querySelector('#dimensionHotspot');
     const dimensionPart = document.querySelector('#dimensionPart');
     const dimensionValue = document.querySelector('#dimensionValue');
+    const zoomPercent = document.querySelector('#zoomPercent');
     const rotateButton = document.querySelector('#rotate');
     const fullscreenButton = document.querySelector('#fullscreen');
     const explodeAnimation = 'Explode_View';
     const explodeTrackDuration = 53 / 30;
     const explodeTransitionDuration = 1800;
     const defaultCameraRadius = 1.45;
-    const blankResetCameraRadius = 3.3;
+    const explodedCameraRadius = 3.3;
 
     const translations = {
       en: {
@@ -575,13 +578,27 @@
       explodeButton.setAttribute('aria-pressed', String(exploded));
     }
 
+    function updateZoomDisplay(radius) {
+      const minimum = Number(zoomSlider.min);
+      const maximum = Number(zoomSlider.max);
+      const sliderValue = Math.min(maximum, Math.max(minimum, Math.round(radius * 100)));
+      const percentage = Math.round((sliderValue - minimum) / (maximum - minimum) * 100);
+      zoomSlider.value = String(sliderValue);
+      zoomSlider.setAttribute('aria-valuetext', `${radius.toFixed(2)} m, ${percentage}%`);
+      zoomPercent.textContent = `${percentage}%`;
+    }
+
     function setCameraRadius(radius) {
       const orbit = viewer.getCameraOrbit();
       const clampedRadius = Math.min(4, Math.max(.55, radius));
       viewer.cameraOrbit = `${orbit.theta}rad ${orbit.phi}rad ${clampedRadius}m`;
       viewer.jumpCameraToGoal();
-      zoomSlider.value = String(Math.round(clampedRadius * 100));
-      zoomSlider.setAttribute('aria-valuetext', `${clampedRadius.toFixed(2)} m`);
+      updateZoomDisplay(clampedRadius);
+    }
+
+    function transitionCameraRadius(radius) {
+      const orbit = viewer.getCameraOrbit();
+      viewer.cameraOrbit = `${orbit.theta}rad ${orbit.phi}rad ${radius}m`;
     }
 
     function finishExplodeTransition() {
@@ -666,6 +683,7 @@
       } else {
         updatePartAppearance();
       }
+      transitionCameraRadius(explodeTarget ? explodedCameraRadius : defaultCameraRadius);
 
       updateExplodeButton();
       viewer.pause();
@@ -725,7 +743,7 @@
       if (moved > 6) return;
       const part = partFromPoint(event.clientX, event.clientY);
       if (selectedPartId !== null) {
-        if (!part) resetDefaultView(blankResetCameraRadius);
+        if (!part) resetDefaultView(explodedCameraRadius);
         return;
       }
       if (part) selectPart(part);
@@ -768,8 +786,7 @@
 
     viewer.addEventListener('camera-change', () => {
       const radius = viewer.getCameraOrbit().radius;
-      zoomSlider.value = String(Math.round(radius * 100));
-      zoomSlider.setAttribute('aria-valuetext', `${radius.toFixed(2)} m`);
+      updateZoomDisplay(radius);
     });
 
     rotateButton.addEventListener('click', () => {
