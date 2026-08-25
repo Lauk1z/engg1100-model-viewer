@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Interactive browser preview of the ENGG1100 flood-resistant housing concept model">
+  <meta name="description" content="Interactive browser preview of the ENGG1100 open-top flood-resistant housing concept model">
   <title>ENGG1100 Flood-resistant Housing · 3D Model</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer@4.3.1/dist/model-viewer.min.js"></script>
   <style>
@@ -164,9 +164,9 @@
   <main id="stage">
     <model-viewer
       id="viewer"
-      src="./assets/engg1100-flood-resistant-housing.glb"
-      poster="./assets/poster.png"
-      alt="3D model of the ENGG1100 flood-resistant housing, pool, wind field and spring mooring system"
+      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-sketch"
+      poster="./assets/poster.png?v=20260825-sketch"
+      alt="3D model of the ENGG1100 open-top flood-resistant housing, pool, wind field and spring mooring system"
       camera-controls
       auto-rotate
       rotation-per-second="7deg"
@@ -183,7 +183,7 @@
 
     <header class="topbar">
       <h1 data-i18n="heading">ENGG1100 Flood-resistant Housing</h1>
-      <div class="subtitle" data-i18n="subtitle">Interactive concept model</div>
+      <div class="subtitle" data-i18n="subtitle">Team sketch revision · interactive concept model</div>
       <div class="language-switch" role="group" aria-label="Language / 语言">
         <button type="button" data-language="en" aria-pressed="true">English</button>
         <button type="button" data-language="zh" aria-pressed="false">中文</button>
@@ -194,10 +194,12 @@
       <strong data-i18n="specifications">Model specifications</strong>
       <dl>
         <dt data-i18n="testArea">Test area</dt><dd>826 × 583 mm</dd>
-        <dt data-i18n="contactPlate">Contact plate</dt><dd>380 × 380 mm</dd>
-        <dt data-i18n="waterDepth">Displayed water depth</dt><dd>180 mm</dd>
+        <dt data-i18n="lowerBase">Lower base</dt><dd>250 × 250 × 80 mm</dd>
+        <dt data-i18n="upperShell">Upper enclosure</dt><dd>160 × 160 × 150 mm</dd>
+        <dt data-i18n="raisedFloor">Raised floor</dt><dd>40 mm</dd>
+        <dt data-i18n="window">Window</dt><dd>30 × 50 mm</dd>
+        <dt data-i18n="top">Top</dt><dd data-i18n="topValue">Open</dd>
         <dt data-i18n="windSpeed">Wind speed reference</dt><dd data-i18n="windSpeedValue">Approx. 2.0 m/s</dd>
-        <dt data-i18n="propulsion">Propulsion</dt><dd data-i18n="propulsionValue">Dual motors opposite wind field</dd>
         <dt data-i18n="mooringPaths">Mooring paths</dt><dd data-i18n="mooringPathsValue">2 paths</dd>
       </dl>
     </aside>
@@ -208,7 +210,7 @@
       <button id="reset" type="button" data-i18n="reset">Reset view</button>
       <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
       <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb" download data-i18n="download">Download GLB</a>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-sketch" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
@@ -231,20 +233,22 @@
     const translations = {
       en: {
         pageTitle: 'ENGG1100 Flood-resistant Housing · 3D Model',
-        description: 'Interactive browser preview of the ENGG1100 flood-resistant housing concept model',
-        modelAlt: '3D model of the ENGG1100 flood-resistant housing, pool, wind field and spring mooring system',
+        description: 'Interactive browser preview of the ENGG1100 open-top flood-resistant housing concept model',
+        modelAlt: '3D model of the ENGG1100 open-top flood-resistant housing, pool, wind field and spring mooring system',
         specificationsAria: 'Model specifications',
         controlsAria: 'Model controls',
         heading: 'ENGG1100 Flood-resistant Housing',
-        subtitle: 'Interactive concept model',
+        subtitle: 'Team sketch revision · interactive concept model',
         specifications: 'Model specifications',
         testArea: 'Test area',
-        contactPlate: 'Contact plate',
-        waterDepth: 'Displayed water depth',
+        lowerBase: 'Lower base',
+        upperShell: 'Upper enclosure',
+        raisedFloor: 'Raised floor',
+        window: 'Window',
+        top: 'Top',
+        topValue: 'Open',
         windSpeed: 'Wind speed reference',
         windSpeedValue: 'Approx. 2.0 m/s',
-        propulsion: 'Propulsion',
-        propulsionValue: 'Dual motors opposite wind field',
         mooringPaths: 'Mooring paths',
         mooringPathsValue: '2 paths',
         hint: 'Drag to rotate · Scroll or pinch to zoom',
@@ -259,20 +263,22 @@
       },
       zh: {
         pageTitle: 'ENGG1100 防洪建筑 · 3D 模型',
-        description: 'ENGG1100 防洪建筑概念模型浏览器预览',
-        modelAlt: 'ENGG1100 防洪建筑、水池、风场及弹簧系泊系统三维模型',
+        description: 'ENGG1100 开顶式防洪建筑概念模型浏览器预览',
+        modelAlt: 'ENGG1100 开顶式防洪建筑、水池、风场及弹簧系泊系统三维模型',
         specificationsAria: '模型参数',
         controlsAria: '模型控制',
         heading: 'ENGG1100 防洪建筑',
-        subtitle: '交互式概念模型',
+        subtitle: '组员草图修订版 · 交互式概念模型',
         specifications: '模型参数',
         testArea: '试验空间',
-        contactPlate: '接触板',
-        waterDepth: '展示水深',
+        lowerBase: '下部基座',
+        upperShell: '上部箱体',
+        raisedFloor: '抬高地台',
+        window: '窗户',
+        top: '顶部',
+        topValue: '开顶',
         windSpeed: '风速参考',
         windSpeedValue: '约 2.0 m/s',
-        propulsion: '推进器',
-        propulsionValue: '风场对侧双马达',
         mooringPaths: '系泊路径',
         mooringPathsValue: '2 条',
         hint: '拖动旋转 · 滚轮或双指缩放',
