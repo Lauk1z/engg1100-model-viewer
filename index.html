@@ -38,7 +38,7 @@
       --progress-bar-color: var(--accent);
     }
 
-    .topbar, .details, .controls, .hint {
+    .topbar, .details, .controls, .hint, .zoom-control {
       position: absolute;
       z-index: 2;
       border: 1px solid var(--line);
@@ -126,6 +126,33 @@
 
     .download { display: inline-flex; align-items: center; }
 
+    .zoom-control {
+      right: 22px;
+      bottom: 22px;
+      display: flex;
+      width: 54px;
+      height: 218px;
+      align-items: center;
+      flex-direction: column;
+      gap: 7px;
+      padding: 10px 8px;
+      border-radius: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .zoom-control label { color: var(--ink); font-size: 11px; }
+    .zoom-control span { line-height: 1; user-select: none; }
+    .zoom-slider {
+      flex: 0 0 auto;
+      width: 140px;
+      height: 24px;
+      margin: 58px 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+      transform: rotate(90deg);
+    }
+
     .hint {
       left: 22px;
       bottom: 22px;
@@ -157,6 +184,8 @@
       .details { display: none; }
       .hint { left: 50%; bottom: 80px; transform: translateX(-50%); white-space: nowrap; }
       .controls { width: calc(100% - 20px); justify-content: center; bottom: 10px; }
+      .zoom-control { right: 10px; bottom: 78px; height: 168px; }
+      .zoom-slider { width: 90px; margin: 33px 0; }
       button, .download { flex: 1; padding: 0 8px; text-align: center; justify-content: center; font-size: 12px; }
     }
   </style>
@@ -165,8 +194,8 @@
   <main id="stage">
     <model-viewer
       id="viewer"
-      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-big-bang"
-      poster="./assets/poster.png?v=20260825-big-bang"
+      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-inspector"
+      poster="./assets/poster.png?v=20260825-part-inspector"
       alt="3D model of the ENGG1100 open-top housing embedded 40 mm into its base with 110 mm exposed"
       camera-controls
       auto-rotate
@@ -180,6 +209,7 @@
       max-camera-orbit="auto auto 4m"
       interaction-prompt="auto"
       animation-crossfade-duration="0"
+      disable-tap
       touch-action="pan-y">
     </model-viewer>
 
@@ -210,6 +240,13 @@
       </dl>
     </aside>
 
+    <aside class="zoom-control" aria-label="Zoom control">
+      <label for="zoom" data-i18n="zoom">Zoom</label>
+      <span aria-hidden="true">＋</span>
+      <input id="zoom" class="zoom-slider" type="range" min="55" max="400" step="5" value="145" aria-label="Zoom">
+      <span aria-hidden="true">−</span>
+    </aside>
+
     <div class="hint" data-i18n="hint">Drag to rotate · Scroll or pinch to zoom</div>
 
     <nav class="controls" aria-label="Model controls">
@@ -217,7 +254,7 @@
       <button id="explode" type="button" aria-pressed="false" disabled>Explode view</button>
       <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
       <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-big-bang" download data-i18n="download">Download GLB</a>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-inspector" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
@@ -235,6 +272,7 @@
     const loadingText = document.querySelector('#loadingText');
     const fill = document.querySelector('#fill');
     const explodeButton = document.querySelector('#explode');
+    const zoomSlider = document.querySelector('#zoom');
     const rotateButton = document.querySelector('#rotate');
     const fullscreenButton = document.querySelector('#fullscreen');
     const explodeAnimation = 'Explode_View';
@@ -269,7 +307,9 @@
         pulleysValue: '2 diagonal base-top units',
         ropeRoute: 'Rope route',
         ropeRouteValue: 'Motor → base pulley → floor spring',
-        hint: 'Drag to rotate · Scroll or pinch to zoom',
+        hint: 'Explode, then hover or click parts · Drag to rotate',
+        zoom: 'Zoom',
+        zoomAria: 'Camera zoom',
         reset: 'Reset view',
         explode: 'Explode view',
         reassemble: 'Reassemble',
@@ -310,7 +350,9 @@
         pulleysValue: '底板顶面对角布置 2 只',
         ropeRoute: '绳索路径',
         ropeRouteValue: '马达 → 底板滑轮 → 地板弹簧',
-        hint: '拖动旋转 · 滚轮或双指缩放',
+        hint: '大爆炸后悬停或点击零件 · 拖动旋转',
+        zoom: '变焦',
+        zoomAria: '相机变焦',
         reset: '复位视角',
         explode: '大爆炸',
         reassemble: '收回模型',
@@ -333,6 +375,110 @@
     let explodeTarget = false;
     let assembledCameraRadius = 1.45;
     let explodeAnimationFrame = 0;
+    let hoveredPartId = null;
+    let selectedPartId = null;
+    let pointerDown = null;
+    const parts = new Map();
+    const materialStates = new Map();
+
+    function parsePartMaterial(material) {
+      if (!material?.name?.startsWith('PART|')) return null;
+      const fields = material.name.split('|');
+      if (fields.length < 7) return null;
+      return {
+        id: fields[1],
+        name: fields[2],
+        center: fields.slice(3, 6).map(Number)
+      };
+    }
+
+    function initializePartInspector() {
+      parts.clear();
+      materialStates.clear();
+      viewer.model.materials.forEach(material => {
+        const metadata = parsePartMaterial(material);
+        if (!metadata) return;
+        const pbr = material.pbrMetallicRoughness;
+        materialStates.set(material, {
+          baseColor: Array.from(pbr.baseColorFactor),
+          emissive: Array.from(material.emissiveFactor),
+          alphaMode: material.getAlphaMode()
+        });
+        if (!parts.has(metadata.id)) {
+          parts.set(metadata.id, {...metadata, materials: []});
+        }
+        parts.get(metadata.id).materials.push(material);
+      });
+      stage.dataset.pickableParts = String(parts.size);
+    }
+
+    function restoreMaterial(material) {
+      const state = materialStates.get(material);
+      if (!state) return;
+      material.pbrMetallicRoughness.setBaseColorFactor(state.baseColor);
+      material.setEmissiveFactor(state.emissive);
+      material.setAlphaMode(state.alphaMode);
+    }
+
+    function dimMaterial(material) {
+      const state = materialStates.get(material);
+      if (!state) return;
+      const alpha = state.baseColor[3] >= .5 ? .16 : .10;
+      material.pbrMetallicRoughness.setBaseColorFactor([...state.baseColor.slice(0, 3), alpha]);
+      material.setEmissiveFactor(state.emissive.map(value => value * .15));
+      material.setAlphaMode('BLEND');
+    }
+
+    function highlightMaterial(material) {
+      material.pbrMetallicRoughness.setBaseColorFactor([.02, .76, 1, 1]);
+      material.setEmissiveFactor([0, .28, .42]);
+      material.setAlphaMode('OPAQUE');
+    }
+
+    function updatePartAppearance() {
+      const focusActive = hoveredPartId !== null || selectedPartId !== null;
+      parts.forEach(part => {
+        part.materials.forEach(material => {
+          if (part.id === hoveredPartId) {
+            highlightMaterial(material);
+          } else if (part.id === selectedPartId || !focusActive) {
+            restoreMaterial(material);
+          } else {
+            dimMaterial(material);
+          }
+        });
+      });
+      stage.dataset.hoveredPart = hoveredPartId ? parts.get(hoveredPartId)?.name || '' : '';
+      stage.dataset.selectedPart = selectedPartId ? parts.get(selectedPartId)?.name || '' : '';
+    }
+
+    function partFromPoint(clientX, clientY) {
+      if (!exploded || explodeTransition || !viewer.modelIsVisible) return null;
+      const metadata = parsePartMaterial(viewer.materialFromPoint(clientX, clientY));
+      return metadata ? parts.get(metadata.id) || null : null;
+    }
+
+    function clearPartFocus(resetTarget = true) {
+      hoveredPartId = null;
+      selectedPartId = null;
+      viewer.style.cursor = '';
+      viewer.removeAttribute('disable-pan');
+      if (resetTarget) viewer.cameraTarget = 'auto auto auto';
+      updatePartAppearance();
+    }
+
+    function selectPart(part) {
+      selectedPartId = part.id;
+      hoveredPartId = part.id;
+      viewer.setAttribute('disable-pan', '');
+      viewer.cameraTarget = `${part.center[0]}m ${part.center[1]}m ${part.center[2]}m`;
+      if (viewer.hasAttribute('auto-rotate')) {
+        viewer.removeAttribute('auto-rotate');
+        rotateButton.textContent = translations[currentLanguage].resume;
+        rotateButton.setAttribute('aria-pressed', 'false');
+      }
+      updatePartAppearance();
+    }
 
     function updateExplodeButton() {
       const copy = translations[currentLanguage];
@@ -346,7 +492,11 @@
 
     function setCameraRadius(radius) {
       const orbit = viewer.getCameraOrbit();
-      viewer.cameraOrbit = `${orbit.theta}rad ${orbit.phi}rad ${radius}m`;
+      const clampedRadius = Math.min(4, Math.max(.55, radius));
+      viewer.cameraOrbit = `${orbit.theta}rad ${orbit.phi}rad ${clampedRadius}m`;
+      viewer.jumpCameraToGoal();
+      zoomSlider.value = String(Math.round(clampedRadius * 100));
+      zoomSlider.setAttribute('aria-valuetext', `${clampedRadius.toFixed(2)} m`);
     }
 
     function finishExplodeTransition() {
@@ -356,6 +506,7 @@
       viewer.currentTime = explodeTarget ? trackEnd : 0;
       exploded = explodeTarget;
       explodeTransition = false;
+      if (!exploded) clearPartFocus();
       explodeButton.disabled = false;
       updateExplodeButton();
     }
@@ -376,6 +527,8 @@
         button.setAttribute('aria-pressed', String(button.dataset.language === language));
       });
       rotateButton.textContent = viewer.hasAttribute('auto-rotate') ? copy.pause : copy.resume;
+      document.querySelector('.zoom-control').setAttribute('aria-label', copy.zoomAria);
+      zoomSlider.setAttribute('aria-label', copy.zoomAria);
       updateExplodeButton();
       loadingText.textContent = loadProgress > 0 ? copy.loadingProgress(loadProgress) : copy.loading;
       localStorage.setItem('engg1100-language', language);
@@ -393,6 +546,7 @@
     });
 
     viewer.addEventListener('load', () => {
+      initializePartInspector();
       if (viewer.availableAnimations.includes(explodeAnimation)) {
         viewer.animationName = explodeAnimation;
         viewer.currentTime = 0;
@@ -400,6 +554,7 @@
         viewer.pause();
         explodeButton.disabled = false;
       }
+      setCameraRadius(viewer.getCameraOrbit().radius);
       loading.hidden = true;
     });
 
@@ -408,6 +563,7 @@
     });
 
     document.querySelector('#reset').addEventListener('click', () => {
+      clearPartFocus();
       const radius = exploded || (explodeTransition && explodeTarget) ? 2.15 : 1.45;
       viewer.cameraOrbit = `35deg 64deg ${radius}m`;
       viewer.cameraTarget = 'auto auto auto';
@@ -419,6 +575,7 @@
       explodeTarget = !exploded;
       explodeTransition = true;
       explodeButton.disabled = true;
+      if (!explodeTarget) clearPartFocus();
 
       if (explodeTarget) {
         assembledCameraRadius = viewer.getCameraOrbit().radius;
@@ -444,6 +601,80 @@
         }
       };
       explodeAnimationFrame = window.requestAnimationFrame(animateExplosion);
+    });
+
+    viewer.addEventListener('pointermove', event => {
+      const part = partFromPoint(event.clientX, event.clientY);
+      const nextHoveredPartId = part?.id || null;
+      viewer.style.cursor = part ? 'pointer' : '';
+      if (nextHoveredPartId === hoveredPartId) return;
+      hoveredPartId = nextHoveredPartId;
+      updatePartAppearance();
+    });
+
+    viewer.addEventListener('pointerleave', () => {
+      viewer.style.cursor = '';
+      if (hoveredPartId === null) return;
+      hoveredPartId = null;
+      updatePartAppearance();
+    });
+
+    viewer.addEventListener('pointerdown', event => {
+      if (!exploded || explodeTransition || event.button !== 0) return;
+      pointerDown = {x: event.clientX, y: event.clientY};
+    });
+
+    viewer.addEventListener('pointerup', event => {
+      if (!pointerDown || !exploded || explodeTransition || event.button !== 0) {
+        pointerDown = null;
+        return;
+      }
+      const moved = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
+      pointerDown = null;
+      if (moved > 6) return;
+      const part = partFromPoint(event.clientX, event.clientY);
+      if (part) selectPart(part);
+    });
+
+    viewer.addEventListener('pointercancel', () => {
+      pointerDown = null;
+    });
+
+    zoomSlider.addEventListener('input', () => {
+      setCameraRadius(Number(zoomSlider.value) / 100);
+    });
+
+    let zoomSliderDragging = false;
+    const setZoomFromPointer = event => {
+      const bounds = zoomSlider.getBoundingClientRect();
+      const ratio = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
+      const minimum = Number(zoomSlider.min);
+      const maximum = Number(zoomSlider.max);
+      setCameraRadius((minimum + ratio * (maximum - minimum)) / 100);
+    };
+
+    zoomSlider.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      zoomSliderDragging = true;
+      zoomSlider.setPointerCapture(event.pointerId);
+      setZoomFromPointer(event);
+    });
+
+    zoomSlider.addEventListener('pointermove', event => {
+      if (zoomSliderDragging) setZoomFromPointer(event);
+    });
+
+    const stopZoomDrag = event => {
+      zoomSliderDragging = false;
+      if (zoomSlider.hasPointerCapture(event.pointerId)) zoomSlider.releasePointerCapture(event.pointerId);
+    };
+    zoomSlider.addEventListener('pointerup', stopZoomDrag);
+    zoomSlider.addEventListener('pointercancel', stopZoomDrag);
+
+    viewer.addEventListener('camera-change', () => {
+      const radius = viewer.getCameraOrbit().radius;
+      zoomSlider.value = String(Math.round(radius * 100));
+      zoomSlider.setAttribute('aria-valuetext', `${radius.toFixed(2)} m`);
     });
 
     rotateButton.addEventListener('click', () => {
