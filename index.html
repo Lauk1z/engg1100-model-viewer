@@ -164,9 +164,9 @@
   <main id="stage">
     <model-viewer
       id="viewer"
-      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-motor-pulley"
-      poster="./assets/poster.png?v=20260825-motor-pulley"
-      alt="3D model of the ENGG1100 open-top housing with wall motors, pool-rim pulleys and spring mooring"
+      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-centered-motor-base-pulley"
+      poster="./assets/poster.png?v=20260825-centered-motor-base-pulley"
+      alt="3D model of the ENGG1100 open-top housing with centred wall motors, base-mounted pulleys and spring mooring"
       camera-controls
       auto-rotate
       rotation-per-second="7deg"
@@ -183,7 +183,7 @@
 
     <header class="topbar">
       <h1 data-i18n="heading">ENGG1100 Flood-resistant Housing</h1>
-      <div class="subtitle" data-i18n="subtitle">Wall-motor and pulley revision · interactive concept model</div>
+      <div class="subtitle" data-i18n="subtitle">Centred wall motors and base pulleys · interactive concept model</div>
       <div class="language-switch" role="group" aria-label="Language / 语言">
         <button type="button" data-language="en" aria-pressed="true">English</button>
         <button type="button" data-language="zh" aria-pressed="false">中文</button>
@@ -201,9 +201,9 @@
         <dt data-i18n="window">Window</dt><dd>30 × 50 mm</dd>
         <dt data-i18n="top">Top</dt><dd data-i18n="topValue">Open</dd>
         <dt data-i18n="windSpeed">Wind speed reference</dt><dd data-i18n="windSpeedValue">Approx. 2.0 m/s</dd>
-        <dt data-i18n="motorSystem">Motors</dt><dd data-i18n="motorSystemValue">2 wall-mounted · 40 mm</dd>
-        <dt data-i18n="pulleys">Pulleys</dt><dd data-i18n="pulleysValue">2 diagonal rim units</dd>
-        <dt data-i18n="ropeRoute">Rope route</dt><dd data-i18n="ropeRouteValue">Motor → pulley → floor spring</dd>
+        <dt data-i18n="motorSystem">Motors</dt><dd data-i18n="motorSystemValue">2 wall-centred · 40 mm above base</dd>
+        <dt data-i18n="pulleys">Pulleys</dt><dd data-i18n="pulleysValue">2 diagonal base-top units</dd>
+        <dt data-i18n="ropeRoute">Rope route</dt><dd data-i18n="ropeRouteValue">Motor → base pulley → floor spring</dd>
       </dl>
     </aside>
 
@@ -213,7 +213,7 @@
       <button id="reset" type="button" data-i18n="reset">Reset view</button>
       <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
       <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-motor-pulley" download data-i18n="download">Download GLB</a>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-centered-motor-base-pulley" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
@@ -236,12 +236,12 @@
     const translations = {
       en: {
         pageTitle: 'ENGG1100 Flood-resistant Housing · 3D Model',
-        description: 'Interactive browser preview of the ENGG1100 wall-motor and pulley concept model',
-        modelAlt: '3D model of the ENGG1100 open-top housing with wall motors, pool-rim pulleys and spring mooring',
+        description: 'Interactive browser preview of the ENGG1100 centred wall-motor and base-pulley concept model',
+        modelAlt: '3D model of the ENGG1100 open-top housing with centred wall motors, base-mounted pulleys and spring mooring',
         specificationsAria: 'Model specifications',
         controlsAria: 'Model controls',
         heading: 'ENGG1100 Flood-resistant Housing',
-        subtitle: 'Wall-motor and pulley revision · interactive concept model',
+        subtitle: 'Centred wall motors and base pulleys · interactive concept model',
         specifications: 'Model specifications',
         testArea: 'Test area',
         lowerBase: 'Lower base',
@@ -255,11 +255,11 @@
         windSpeed: 'Wind speed reference',
         windSpeedValue: 'Approx. 2.0 m/s',
         motorSystem: 'Motors',
-        motorSystemValue: '2 wall-mounted · 40 mm',
+        motorSystemValue: '2 wall-centred · 40 mm above base',
         pulleys: 'Pulleys',
-        pulleysValue: '2 diagonal rim units',
+        pulleysValue: '2 diagonal base-top units',
         ropeRoute: 'Rope route',
-        ropeRouteValue: 'Motor → pulley → floor spring',
+        ropeRouteValue: 'Motor → base pulley → floor spring',
         hint: 'Drag to rotate · Scroll or pinch to zoom',
         reset: 'Reset view',
         pause: 'Pause rotation',
@@ -272,12 +272,12 @@
       },
       zh: {
         pageTitle: 'ENGG1100 防洪建筑 · 3D 模型',
-        description: 'ENGG1100 外墙马达与滑轮方案浏览器交互预览',
-        modelAlt: 'ENGG1100 开顶式建筑、外墙马达、池沿滑轮及弹簧系泊系统三维模型',
+        description: 'ENGG1100 墙体居中马达与底板滑轮方案浏览器交互预览',
+        modelAlt: 'ENGG1100 开顶式建筑、墙体居中马达、底板滑轮及弹簧系泊系统三维模型',
         specificationsAria: '模型参数',
         controlsAria: '模型控制',
         heading: 'ENGG1100 防洪建筑',
-        subtitle: '外墙马达与滑轮修订版 · 交互式概念模型',
+        subtitle: '墙体居中马达与底板滑轮修订版 · 交互式概念模型',
         specifications: '模型参数',
         testArea: '试验空间',
         lowerBase: '下部基座',
@@ -291,11 +291,11 @@
         windSpeed: '风速参考',
         windSpeedValue: '约 2.0 m/s',
         motorSystem: '马达',
-        motorSystemValue: '2 台外墙安装 · 高度 40 mm',
+        motorSystemValue: '2 台墙体居中 · 距底板 40 mm',
         pulleys: '滑轮',
-        pulleysValue: '池沿对角布置 2 只',
+        pulleysValue: '底板顶面对角布置 2 只',
         ropeRoute: '绳索路径',
-        ropeRouteValue: '马达 → 滑轮 → 地板弹簧',
+        ropeRouteValue: '马达 → 底板滑轮 → 地板弹簧',
         hint: '拖动旋转 · 滚轮或双指缩放',
         reset: '复位视角',
         pause: '暂停旋转',
