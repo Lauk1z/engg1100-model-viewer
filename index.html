@@ -36,6 +36,8 @@
       background: transparent;
       --poster-color: transparent;
       --progress-bar-color: var(--accent);
+      --min-hotspot-opacity: 1;
+      --max-hotspot-opacity: 1;
     }
 
     .topbar, .details, .controls, .hint, .zoom-control {
@@ -131,14 +133,15 @@
       min-width: max-content;
       gap: 2px;
       padding: 7px 10px;
-      border: 1px solid rgba(102, 220, 255, .8);
+      border: 1px solid rgb(102, 220, 255);
       border-radius: 9px;
       color: var(--ink);
-      background: rgba(5, 20, 30, .9);
+      background: rgb(5, 20, 30);
       box-shadow: 0 10px 28px rgba(0, 0, 0, .38);
       font-size: 11px;
       line-height: 1.25;
       pointer-events: none;
+      opacity: 1;
       transform: translate(-50%, -100%);
     }
 
@@ -213,8 +216,8 @@
   <main id="stage">
     <model-viewer
       id="viewer"
-      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-dimensions"
-      poster="./assets/poster.png?v=20260825-part-dimensions"
+      src="./assets/engg1100-flood-resistant-housing.glb?v=20260825-selection-lock"
+      poster="./assets/poster.png?v=20260825-selection-lock"
       alt="3D model of the ENGG1100 open-top housing embedded 40 mm into its base with 110 mm exposed"
       camera-controls
       auto-rotate
@@ -277,7 +280,7 @@
       <button id="explode" type="button" aria-pressed="false" disabled>Explode view</button>
       <button id="rotate" type="button" aria-pressed="true">Pause rotation</button>
       <button id="fullscreen" type="button" data-i18n="fullscreen">Fullscreen</button>
-      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-part-dimensions" download data-i18n="download">Download GLB</a>
+      <a class="download" href="./assets/engg1100-flood-resistant-housing.glb?v=20260825-selection-lock" download data-i18n="download">Download GLB</a>
     </nav>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
@@ -518,6 +521,7 @@
       });
       stage.dataset.hoveredPart = hoveredPartId ? parts.get(hoveredPartId)?.name || '' : '';
       stage.dataset.selectedPart = selectedPartId ? parts.get(selectedPartId)?.name || '' : '';
+      stage.dataset.selectionLocked = String(selectedPartId !== null);
       stage.dataset.hiddenEnvironmentParts = hideEnvironment
         ? String(Array.from(parts.values()).filter(part => part.hideDuringExplosion).length)
         : '0';
@@ -542,7 +546,7 @@
 
     function selectPart(part) {
       selectedPartId = part.id;
-      hoveredPartId = part.id;
+      hoveredPartId = null;
       viewer.setAttribute('disable-pan', '');
       viewer.cameraTarget = `${part.center[0]}m ${part.center[1]}m ${part.center[2]}m`;
       if (viewer.hasAttribute('auto-rotate')) {
@@ -551,6 +555,14 @@
         rotateButton.setAttribute('aria-pressed', 'false');
       }
       updatePartAppearance();
+    }
+
+    function resetDefaultView() {
+      clearPartFocus();
+      const radius = exploded || (explodeTransition && explodeTarget) ? 2.15 : 1.45;
+      viewer.cameraOrbit = `35deg 64deg ${radius}m`;
+      viewer.cameraTarget = 'auto auto auto';
+      viewer.jumpCameraToGoal();
     }
 
     function updateExplodeButton() {
@@ -641,11 +653,7 @@
     });
 
     document.querySelector('#reset').addEventListener('click', () => {
-      clearPartFocus();
-      const radius = exploded || (explodeTransition && explodeTarget) ? 2.15 : 1.45;
-      viewer.cameraOrbit = `35deg 64deg ${radius}m`;
-      viewer.cameraTarget = 'auto auto auto';
-      viewer.jumpCameraToGoal();
+      resetDefaultView();
     });
 
     explodeButton.addEventListener('click', () => {
@@ -686,6 +694,14 @@
     });
 
     viewer.addEventListener('pointermove', event => {
+      if (selectedPartId !== null) {
+        viewer.style.cursor = '';
+        if (hoveredPartId !== null) {
+          hoveredPartId = null;
+          updatePartAppearance();
+        }
+        return;
+      }
       const part = partFromPoint(event.clientX, event.clientY);
       const nextHoveredPartId = part?.id || null;
       viewer.style.cursor = part ? 'pointer' : '';
@@ -715,6 +731,10 @@
       pointerDown = null;
       if (moved > 6) return;
       const part = partFromPoint(event.clientX, event.clientY);
+      if (selectedPartId !== null) {
+        if (!part) resetDefaultView();
+        return;
+      }
       if (part) selectPart(part);
     });
 
